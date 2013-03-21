@@ -17,15 +17,18 @@ $passwd_db_mutex = Mutex.new
 
 # User information database(temporary implementation)
 $passwd_db = {
-  "user0" => { "pass"=>"pass0","connected"=>false,"ip"=>nil },
-  "user1" => { "pass"=>"pass1","connected"=>false,"ip"=>nil },
-  "user2" => { "pass"=>"pass2","connected"=>false,"ip"=>nil },
-  "user3" => { "pass"=>"pass3","connected"=>false,"ip"=>nil },
-  "user4" => { "pass"=>"pass4","connected"=>false,"ip"=>nil },
+  "user0" => { "pass"=>"pass0","connected"=>false,"ip"=>nil,"connect_to"=>nil },
+  "user1" => { "pass"=>"pass1","connected"=>false,"ip"=>nil,"connect_to"=>nil },
+  "user2" => { "pass"=>"pass2","connected"=>false,"ip"=>nil,"connect_to"=>nil },
+  "user3" => { "pass"=>"pass3","connected"=>false,"ip"=>nil,"connect_to"=>nil },
+  "user4" => { "pass"=>"pass4","connected"=>false,"ip"=>nil,"connect_to"=>nil },
 }
 
 # TCP Socket port number
 server_port = 12800
+
+$timeout_login_sec = 60
+$timeout_console_sec = 60
 
 def user_authentication(sock)
   printf("## Authentication start\n")
@@ -35,7 +38,7 @@ def user_authentication(sock)
   result_auth = false
 
   begin
-    timeout(20){
+    timeout($timeout_login_sec){
 
       while(user_id == nil || pass_phrase == nil)
         msg = sock.gets
@@ -73,14 +76,15 @@ def hub_main(sock,user_id)
   
   while true
     begin
-      timeout(20){
+      timeout($timeout_console_sec){
         received = sock.gets
-        result = proc_hub_main_commands(sock,received)
+        result = proc_hub_main_commands(sock,received,user_id)
         printf("** result = %s\n",result)
         if result == false
           # TODO:later need to fix it.
           raise Timeout::Error
         end
+        p $passwd_db
       }
     rescue Timeout::Error
       printf("Timeout occurred\n")
@@ -94,7 +98,7 @@ def hub_main(sock,user_id)
 
 end
 
-def proc_hub_main_commands(sock,data)
+def proc_hub_main_commands(sock,data,own_user_id)
 
   str = data.gsub(/(\r|\n)/,"")
   str_array = str.split(/ /)
@@ -118,6 +122,24 @@ def proc_hub_main_commands(sock,data)
     else
       sock.write("*\r\n")
     end
+  when "CONNECTTO"
+    printf("Try to connect from %s to %s : ",own_user_id,str_array[1])
+    STDOUT.flush
+
+    if acdb_set_connect_to(str_array[1],own_user_id)
+      printf("OK\n")
+      sock.write("1\r\n")
+    else
+      printf("FAILED\n")
+      sock.write("*\r\n")
+    end
+  when "POLL"
+    result = acdb_get_connect_to(own_user_id)
+    if result == nil
+      sock.write("*\r\n")
+    else
+      sock.write(result + "\r\n")
+    end
   end
 
   return true
@@ -126,6 +148,50 @@ end
 
 ##################################################
 # Account database
+
+def acdb_get_connect_to(user_id)
+  ret = nil
+
+  $passwd_db_mutex.synchronize {
+    if $passwd_db.has_key?(user_id)
+      ret = $passwd_db[user_id]["connect_to"]
+    end
+  }
+
+  return ret
+end
+
+def acdb_set_connect_to(user_id,own_user_id)
+  ret = false
+
+  printf("acdb_set_connect_to(%s,%s)\n",user_id,own_user_id)
+  STDOUT.flush
+
+  if acdb_get_connected(user_id) == true
+    if acdb_get_connect_to(user_id) == nil
+      $passwd_db_mutex.synchronize {
+        $passwd_db[user_id]["connect_to"] = own_user_id
+      }
+      ret = true
+    end
+  end
+
+  return ret
+end
+
+def acdb_get_connect_to(user_id)
+  ret = nil
+
+  printf("acdb_get_connect_to [%s]\n",user_id)
+
+  $passwd_db_mutex.synchronize {
+    if $passwd_db.has_key?(user_id)
+      ret = $passwd_db[user_id]["connect_to"]
+    end
+  }
+
+  return ret
+end
 
 def acdb_check_account(user_id,pass_phrase)
   ret = false
