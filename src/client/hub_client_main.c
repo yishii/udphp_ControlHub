@@ -360,7 +360,7 @@ bool receiveTcpResponse(int sock,char* msg)
 	if(strcmp(buff,msg) == 0){
 	    ret = true;
 	} else {
-	    printf("response is not what I expected(expected=[%s],received=[%s])\n",buff,msg);
+	    printf("response is not what I expected(expected=[%s],received=[%s])\n",msg,buff);
 	}
     }
     return(ret);
