@@ -27,8 +27,8 @@ $passwd_db = {
 # TCP Socket port number
 server_port = 12800
 
-$timeout_login_sec = 60
-$timeout_console_sec = 60
+$timeout_login_sec = 10
+$timeout_console_sec = 10
 
 def user_authentication(sock)
   printf("## Authentication start\n")
@@ -316,6 +316,7 @@ while true
       s.close
       acdb_set_connected(user_id,false)
       acdb_set_ip(user_id,nil)
+      p $passwd_db
 
     end
   end
