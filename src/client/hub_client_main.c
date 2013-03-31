@@ -31,6 +31,7 @@ bool loginServer(int sock,char* username,char* password);
 bool commandStat(int sock,char* user);
 bool commandPoll(int sock,char* user);
 bool commandGetip(int sock,char* user,char* ip);
+bool commandConnectTo(int sock,char* user);
 bool sendUdpMessage(char* url,int port,char* msg,int len);
 
 struct serverinfo {
@@ -41,6 +42,20 @@ struct serverinfo {
     char* connect_to;
     int connection_udp_port;
 };
+
+HubResult startMessageReceivingThread(int port)
+{
+    pthread_t t1;
+    HubResult ret = HUBC_OK;
+
+    pthread_create(&t1,NULL,messageReceivingThread,(void*)&port);
+
+    sleep(1);
+
+    //pthread_join(t1,NULL);
+
+    return(ret);
+}
 
 HubResult startHubConnectionMasterThread(char* server_url,int server_port,char* username,char* password,char* connect_to,int connection_port)
 {
@@ -94,6 +109,7 @@ void* hubAccessingMasterThread(void* arg)
     char msg[100];
     char connect_to_ip[20];
     struct serverinfo* info = arg;
+    const char *dummyAccessMessage = "Hello";
 
     printf("[%s] url=[%s],hub_tcp_port=[%d],username=[%s],password=[%s],connect_to=[%s],connection_udp_port=[%d]\n",
 	   __func__,
@@ -136,6 +152,11 @@ void* hubAccessingMasterThread(void* arg)
 
     printf("Target IP : [%s]\n",connect_to_ip);
 
+    sendUdpMessage(connect_to_ip,info->connection_udp_port,(char*)dummyAccessMessage,strlen(dummyAccessMessage));
+    printf("%s:Sent dummy access message\n",__func__);
+
+    commandConnectTo(sock,info->connect_to);
+
     while(1){
 	printf("[%s] sleep...\n",__FUNCTION__);
 	sleep(2);
@@ -151,6 +172,8 @@ void* hubAccessingSlaveThread(void* arg)
     int sock;
     bool result;
     char buff[100];
+    char requested_user[20];
+    char requested_user_ip[20];
     struct serverinfo* info = arg;
 
     printf("[%s] url=[%s],hub_tcp_port=[%d],username=[%s],password=[%s],connection_udp_port=[%d]\n",
@@ -179,18 +202,21 @@ void* hubAccessingSlaveThread(void* arg)
     }
 
     for(i=0;;i++){
-	if(commandPoll(sock,buff) == false){
-	    printf("Nothing happened by response of POLL command\n");
+	if(commandPoll(sock,requested_user) == false){
+	    printf("Nothing is happened by response of POLL command\n");
 	} else {
-	    printf("Requested from [%s]\n",buff);
+	    printf("Requested from [%s]\n",requested_user);
 	    break;
 	}
 	sleep(2);
     }
+    
+    commandGetip(sock,requested_user,requested_user_ip);
 
     while(1){
-	sleep(1);
-	printf("[%s] sleep...\n",__FUNCTION__);
+	sleep(2);
+	sendUdpMessage(requested_user_ip,info->connection_udp_port,"Hello,from slave thread",strlen("Hello,from slave thread"));
+	printf("[%s] sent udp message,and sleep...\n",__FUNCTION__);
     }
 
     close(socket);
@@ -290,7 +316,6 @@ bool commandGetip(int sock,char* user,char* ip)
     sendTcpMessage(sock,buff);
     
     receiveTcpMessage(sock,buff,sizeof(buff));
-    removeNewline(buff);
     printf("%s : response of GETIP : [%s]\n",__func__,buff);
 
     if(*buff != '*'){
@@ -302,6 +327,22 @@ bool commandGetip(int sock,char* user,char* ip)
     return(ret);
 }
 
+bool commandConnectTo(int sock,char* user)
+{
+    char buff[100];
+    bool ret = false;
+
+    sprintf(buff,"CONNECTTO %s\r\n",user);
+    sendTcpMessage(sock,buff);
+    
+    receiveTcpMessage(sock,buff,sizeof(buff));
+
+    if(*buff == '1'){
+	ret = true;
+    }
+
+    return(ret);
+}
 
 bool receiveTcpResponse(int sock,char* msg)
 {
@@ -319,7 +360,7 @@ bool receiveTcpResponse(int sock,char* msg)
 	if(strcmp(buff,msg) == 0){
 	    ret = true;
 	} else {
-	    printf("response is not what I expected...\n");
+	    printf("response is not what I expected(expected=[%s],received=[%s])\n",buff,msg);
 	}
     }
     return(ret);
@@ -399,7 +440,7 @@ void* messageReceivingThread(void* arg)
 
     memset(buff,0,sizeof(buff));
     while(recv(sock,buff,sizeof(buff),0) > 0){
-	printf("received:[%s]\n",buff);
+	printf("%s:received:[%s]\n",__func__,buff);
     }
 
     printf("thread[%s] end\n",__func__);
