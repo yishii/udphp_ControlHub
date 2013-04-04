@@ -15,6 +15,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netdb.h>
 #include <alloca.h>
 #include <errno.h>
 #include "hub_client.h"
@@ -33,6 +34,7 @@ bool commandPoll(int sock,char* user);
 bool commandGetip(int sock,char* user,char* ip);
 bool commandConnectTo(int sock,char* user);
 bool sendUdpMessage(char* url,int port,char* msg,int len);
+bool getAddress(char* hostname,char* ipstr,int ipstr_len);
 
 struct serverinfo {
     char* url;
@@ -63,9 +65,15 @@ HubResult startHubConnectionMasterThread(char* server_url,int server_port,char* 
     struct serverinfo info;
     HubResult ret = HUBC_OK;
 
+    char ip[20];
+    if(getAddress(server_url,ip,sizeof(ip)) == false){
+	printf("%s : Address resolve error\n",__func__);
+	return(HUBC_ERR);
+    }
+
     memset(&info,0,sizeof(struct serverinfo));
 
-    info.url = server_url;
+    info.url = ip;
     info.hub_tcp_port = server_port;
     info.username = username;
     info.password = password;
@@ -85,9 +93,15 @@ HubResult startHubConnectionSlaveThread(char* server_url,int server_port,char* u
     struct serverinfo info;
     HubResult ret = HUBC_OK;
 
+    char ip[20];
+    if(getAddress(server_url,ip,sizeof(ip)) == false){
+	printf("%s : Address resolve error\n",__func__);
+	return(HUBC_ERR);
+    }
+
     memset(&info,0,sizeof(struct serverinfo));
 
-    info.url = server_url;
+    info.url = ip;
     info.hub_tcp_port = server_port;
     info.username = username;
     info.password = password;
@@ -464,3 +478,43 @@ bool sendUdpMessage(char* url,int port,char* msg,int len)
     return(true);
 }
 
+bool getAddress(char* hostname,char* ipstr,int ipstr_len)
+{
+    char* service = "http";
+    struct addrinfo hints,*res0,*res;
+    int err;
+    int sock;
+    bool found = false;
+
+    memset(&hints,0,sizeof(hints));
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_family = PF_UNSPEC;
+
+    if((err = getaddrinfo(hostname,service,&hints,&res0)) != 0){
+	printf("err %d\n",err);
+	return false;
+    }
+
+    for(res=res0;res!=NULL;res=res->ai_next){
+	sock = socket(res->ai_family,res->ai_socktype,res->ai_protocol);
+	if(sock < 0){
+	    continue;
+	}
+
+	if(connect(sock,res->ai_addr,res->ai_addrlen) != 0){
+	    close(sock);
+	    continue;
+	}
+	found = true;
+	
+	break;
+    }
+
+    if(inet_ntop(AF_INET,&((struct sockaddr_in*)(res->ai_addr))->sin_addr,ipstr,ipstr_len) == NULL){
+	printf("inet_ntop returns error\n");
+    }	
+
+    freeaddrinfo(res0);
+
+    return(found);
+}

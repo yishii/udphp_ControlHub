@@ -2,8 +2,9 @@
 #include <stdlib.h>
 #include "hub_client.h"
 
-//#define	HUB_SERVER_URL	"www.yishii.jp"
-#define	HUB_SERVER_URL	"127.0.0.1"
+#define	HUB_SERVER_URL		"www.yishii.jp"
+//#define	HUB_SERVER_URL	"49.212.150.105"
+//#define	HUB_SERVER_URL	"127.0.0.1"
 #define	HUB_SERVER_PORT	12800
 #define	HUB_ACCOUNT_USERNAME	"user1"
 #define	HUB_ACCOUNT_PASSWORD	"pass1"

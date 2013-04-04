@@ -6,6 +6,7 @@ typedef enum {
     HUBC_ERR
 } HubResult;
 
+HubResult startMessageReceivingThread(int port);
 HubResult startHubConnectionMasterThread(char* server_url,int server_port,char* username,char* password,char* connect_to,int connection_port);
 HubResult startHubConnectionSlaveThread(char* server_url,int server_port,char* username,char* password,int connection_port);
 
