@@ -7,7 +7,7 @@ typedef enum {
 } HubResult;
 
 HubResult startMessageReceivingThread(int port);
-HubResult startHubConnectionMasterThread(char* server_url,int server_port,char* username,char* password,char* connect_to,int connection_port);
-HubResult startHubConnectionSlaveThread(char* server_url,int server_port,char* username,char* password,int connection_port);
+HubResult startHubConnectionMasterThread(char* server_url,int server_port,char* username,char* password,char* connect_to,int connection_port,bool resolve_host);
+HubResult startHubConnectionSlaveThread(char* server_url,int server_port,char* username,char* password,int connection_port,bool resolve_host);
 
 #endif /* __HUB_CLIENT_H__ */

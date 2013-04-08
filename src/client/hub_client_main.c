@@ -59,16 +59,20 @@ HubResult startMessageReceivingThread(int port)
     return(ret);
 }
 
-HubResult startHubConnectionMasterThread(char* server_url,int server_port,char* username,char* password,char* connect_to,int connection_port)
+HubResult startHubConnectionMasterThread(char* server_url,int server_port,char* username,char* password,char* connect_to,int connection_port,bool resolve_host)
 {
     pthread_t t1;
     struct serverinfo info;
     HubResult ret = HUBC_OK;
-
     char ip[20];
-    if(getAddress(server_url,ip,sizeof(ip)) == false){
+
+    if(resolve_host){
+      if(getAddress(server_url,ip,sizeof(ip)) == false){
 	printf("%s : Address resolve error\n",__func__);
 	return(HUBC_ERR);
+      }
+    } else {
+      strcpy(ip,server_url);
     }
 
     memset(&info,0,sizeof(struct serverinfo));
@@ -87,16 +91,20 @@ HubResult startHubConnectionMasterThread(char* server_url,int server_port,char* 
     return(ret);
 }
 
-HubResult startHubConnectionSlaveThread(char* server_url,int server_port,char* username,char* password,int connection_port)
+HubResult startHubConnectionSlaveThread(char* server_url,int server_port,char* username,char* password,int connection_port,bool resolve_host)
 {
     pthread_t t1;
     struct serverinfo info;
     HubResult ret = HUBC_OK;
+    char ip[INET_ADDRSTRLEN];
 
-    char ip[20];
-    if(getAddress(server_url,ip,sizeof(ip)) == false){
+    if(resolve_host){
+      if(getAddress(server_url,ip,sizeof(ip)) == false){
 	printf("%s : Address resolve error\n",__func__);
 	return(HUBC_ERR);
+      }
+    } else {
+      strcpy(ip,server_url);
     }
 
     memset(&info,0,sizeof(struct serverinfo));
@@ -121,7 +129,7 @@ void* hubAccessingMasterThread(void* arg)
     int sock;
     bool result;
     char msg[100];
-    char connect_to_ip[20];
+    char connect_to_ip[INET_ADDRSTRLEN];
     struct serverinfo* info = arg;
     const char *dummyAccessMessage = "Hello";
 
