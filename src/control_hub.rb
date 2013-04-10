@@ -48,10 +48,12 @@ def user_authentication(sock)
         if msg =~ /USER (.*)/
           user_id = $1
           sock.write("OK\r\n")
+          sock.flush
           printf("User ID = [%s]\n",user_id)
         elsif msg =~ /PASS (.*)/
           pass_phrase = $1
           sock.write("OK\r\n")
+          sock.flush
         end
       end
   
@@ -67,6 +69,7 @@ def user_authentication(sock)
     user_id = nil
   end
 
+  sleep 0.5
   return result_auth,user_id
 end
 
@@ -270,7 +273,6 @@ def acdb_get_ip(user_id)
   return ret
 end
 
-
 ##################################################
 
 gs = TCPServer.open(server_port)
@@ -278,9 +280,12 @@ addr = gs.addr
 addr.shift
 printf("server is on %s\n", addr.join(":"))
 
+
 while true
 
   Thread.start(gs.accept) do |s|
+    s.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
+    
     user_id = nil
 
     printf("CONNECT %s\n",s)
@@ -290,6 +295,7 @@ while true
     printf(" from [%s]\n",peer_ipaddr)
 
     s.write("CONNECT\r\n")
+    s.flush
 
     auth_result,user_id = user_authentication(s)
     if auth_result == false

@@ -397,6 +397,7 @@ bool receiveTcpMessage(int sock,char* msg,int len)
     if(result == -1){
 	return(false);
     } else {
+      printf("received:[%s]\n",msg);
 	return(true);
     }
 }
