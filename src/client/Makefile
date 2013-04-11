@@ -1,7 +1,7 @@
 CROSS		 = 
 CC		 = $(CROSS)gcc
 CFLAGS		 = -O0 -I.
-CFLAGS		+= -lpthread
+#CFLAGS		+= -lpthread
 OBJS_COMMON	 = hub_client_main.o
 OBJS_REMOTE	 = remote.o
 OBJS_TARGET	 = target.o

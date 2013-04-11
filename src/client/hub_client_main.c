@@ -181,6 +181,12 @@ void* hubAccessingMasterThread(void* arg)
 
     while(1){
 	printf("[%s] sleep...\n",__FUNCTION__);
+	{
+	  char str[80];
+	  sprintf("%s message from master thread");
+	  sendUdpMessage(requested_user_ip,info->connection_udp_port,str,strlen(str));
+	  printf("[%s] sent udp message,and sleep...\n",__FUNCTION__);
+	}
 	sleep(2);
     }
 
@@ -237,8 +243,12 @@ void* hubAccessingSlaveThread(void* arg)
 
     while(1){
 	sleep(2);
-	sendUdpMessage(requested_user_ip,info->connection_udp_port,"Hello,from slave thread",strlen("Hello,from slave thread"));
-	printf("[%s] sent udp message,and sleep...\n",__FUNCTION__);
+	{
+	  char str[80];
+	  sprintf("%s message from slave thread");
+	  sendUdpMessage(requested_user_ip,info->connection_udp_port,str,strlen(str));
+	  printf("[%s] sent udp message,and sleep...\n",__FUNCTION__);
+	}
     }
 
     close(socket);
