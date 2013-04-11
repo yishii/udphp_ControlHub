@@ -183,8 +183,8 @@ void* hubAccessingMasterThread(void* arg)
 	printf("[%s] sleep...\n",__FUNCTION__);
 	{
 	  char str[80];
-	  sprintf("%s message from master thread");
-	  sendUdpMessage(requested_user_ip,info->connection_udp_port,str,strlen(str));
+	  sprintf(str,"%s message from master thread",__FUNCTION__);
+	  sendUdpMessage(connect_to_ip,info->connection_udp_port,str,strlen(str));
 	  printf("[%s] sent udp message,and sleep...\n",__FUNCTION__);
 	}
 	sleep(2);
@@ -245,7 +245,7 @@ void* hubAccessingSlaveThread(void* arg)
 	sleep(2);
 	{
 	  char str[80];
-	  sprintf("%s message from slave thread");
+	  sprintf(str,"%s message from slave thread",__FUNCTION__);
 	  sendUdpMessage(requested_user_ip,info->connection_udp_port,str,strlen(str));
 	  printf("[%s] sent udp message,and sleep...\n",__FUNCTION__);
 	}
